@@ -8,6 +8,7 @@ using Unity.Burst.CompilerServices;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
+	[Header("Movement Variables")]
 	[SerializeField] private float moveSpeed = 5f;
 	[SerializeField] private float sprintMultiplier = 2f;
 	[SerializeField] private float walkMultiplier = 0.5f;
@@ -22,12 +23,17 @@ public class PlayerMovement : MonoBehaviour
 	private Transform interactionTransform;
 	//The original distance to the interacted object.
 	private float interactionDist;
+	[Header("Manager Scripts")]
     [SerializeField] private EscapeMenu escapeMenu;
     [SerializeField] private GameObject inventory;
 	[SerializeField] private InventoryManager inventoryManager;
     [SerializeField] private NotebookHandler notebookHandler;
 	public Reputation reputation;
     public PuzzleHandler puzzleHandler;
+
+	[Space]
+	[Header("Animation")]
+	public Animator animator;
 
     private bool canMove;
     private bool escMenu;
@@ -52,7 +58,16 @@ public class PlayerMovement : MonoBehaviour
 		movement *= Input.GetKey(KeyCode.LeftShift) ? sprintMultiplier : 1f;
         movement *= Input.GetKey(KeyCode.LeftControl) ? walkMultiplier : 1f;
 
-        if (canMove && Input.GetKeyDown(KeyCode.E)) Interact();
+		// Movement Animation
+		float MoveSpeed = movement.magnitude; // Movespeed is applied as a multiplier while walking
+		bool IsWalking = (MoveSpeed > 0.1) && canMove; // Is walking is a bool we pass to the animation controller to begin animating the walk cycle
+		//0.1 is probably a bit high of a gate for animation, if anyone wants to test with a controller to find a more suitable number feel free
+		animator.SetFloat("MoveSpeed", MoveSpeed);
+		if (!canMove) { animator.SetFloat("MoveSpeed", 1); } // Sometimes animations can get stuck waiting if this is set to 0 so instead we set it to 1 to ensure other animations can play
+		animator.SetBool("IsWalking", IsWalking);
+		animator.SetBool("IsSprinting", Input.GetKey(KeyCode.LeftShift)); // If we ever change the controls above please change this with it.
+
+		if (canMove && Input.GetKeyDown(KeyCode.E)) Interact();
 
 		if (Input.GetKeyDown(KeyCode.Escape))
 		{
@@ -227,4 +242,22 @@ public class PlayerMovement : MonoBehaviour
 			}
 		}
     }*/
+	/// <summary>
+	/// This is a function to make the player stop and pick up an object on the ground when interacting.
+	/// </summary>
+	public void PickupObjectLow() 
+	{
+		canMove = false;
+		animator.SetBool("IsWalking", false);
+		animator.SetBool("IsSprinting", false);
+		animator.SetFloat("MoveSpeed", 1);
+		animator.SetTrigger("PickupLow");
+		
+	}
+
+	public void EndPickupObjectLow() 
+	{
+		canMove = true;
+	}
+
 }
